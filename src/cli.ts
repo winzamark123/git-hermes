@@ -5,7 +5,7 @@ import { getStagedDiff, commitWithMessage } from "./git";
 import { generateCommitMessage } from "./ai";
 
 function printHelp() {
-  console.error(`Usage: git hermes [command] [options]
+  console.log(`Usage: git hermes [command] [options]
 
 Commands:
   config                    Open config file in $EDITOR
@@ -60,14 +60,14 @@ async function main() {
   const config = await loadConfig({ providerOverride, modelOverride, apiKeyOverride, promptOverride });
   const diff = await getStagedDiff();
 
-  console.error("Generating commit message...");
+  console.log("Generating commit message...");
   const message = await generateCommitMessage({ diff, config });
 
   if (dryRun) {
     process.stdout.write(message + "\n");
   } else {
     const result = await commitWithMessage({ message });
-    console.error(result);
+    console.log(result);
   }
 }
 

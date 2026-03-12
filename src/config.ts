@@ -37,7 +37,7 @@ async function ensureConfigExists() {
   };
 
   await Bun.write(configPath, JSON.stringify(defaultConfig, null, 2) + "\n");
-  console.error(`Created default config at ${configPath}`);
+  console.log(`Created default config at ${configPath}`);
 }
 
 export async function loadConfig({
