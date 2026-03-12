@@ -1,37 +1,37 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const exec = promisify(execFile);
+
 export async function getStagedDiff() {
-  const proc = Bun.spawn(["git", "diff", "--cached"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  try {
+    const { stdout } = await exec("git", ["diff", "--cached"], {
+      maxBuffer: 10 * 1024 * 1024,
+    });
 
-  const diff = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
+    if (!stdout.trim()) {
+      throw new Error("No staged changes found. Stage files with `git add` first.");
+    }
 
-  if (exitCode !== 0) {
-    throw new Error(`git diff failed: ${stderr.trim()}`);
+    return stdout;
+  } catch (error) {
+    if (error instanceof Error && !error.message.includes("Stage files")) {
+      const stderr = "stderr" in error && typeof error.stderr === "string" ? error.stderr.trim() : "";
+      throw new Error(`git diff failed: ${stderr || error.message}`);
+    }
+    throw error;
   }
-
-  if (!diff.trim()) {
-    throw new Error("No staged changes found. Stage files with `git add` first.");
-  }
-
-  return diff;
 }
 
 export async function commitWithMessage({ message }: { message: string }) {
-  const proc = Bun.spawn(["git", "commit", "-m", message], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
-
-  if (exitCode !== 0) {
-    throw new Error(`git commit failed: ${stderr.trim()}`);
+  try {
+    const { stdout } = await exec("git", ["commit", "-m", message]);
+    return stdout.trim();
+  } catch (error) {
+    const stderr =
+      error instanceof Error && "stderr" in error && typeof error.stderr === "string"
+        ? error.stderr.trim()
+        : "";
+    throw new Error(`git commit failed: ${stderr || (error instanceof Error ? error.message : String(error))}`);
   }
-
-  return stdout.trim();
 }

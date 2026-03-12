@@ -1,7 +1,9 @@
 import { z } from "zod";
-import { join } from "path";
-import { homedir } from "os";
-import { DEFAULT_PROMPT } from "./prompt";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { readFile, writeFile, mkdir, access } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { DEFAULT_PROMPT } from "./prompt.js";
 
 const SUPPORTED_PROVIDERS = ["openai", "anthropic", "google", "groq"] as const;
 const DEFAULT_PROVIDER = "openai";
@@ -24,10 +26,19 @@ function getConfigPath() {
   return join(base, "hermes", "config.json");
 }
 
+async function fileExists(path: string) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function ensureConfigExists() {
   const configPath = getConfigPath();
   const dir = configPath.slice(0, configPath.lastIndexOf("/"));
-  await Bun.spawn(["mkdir", "-p", dir]).exited;
+  await mkdir(dir, { recursive: true });
 
   const defaultConfig = {
     provider: DEFAULT_PROVIDER,
@@ -36,7 +47,7 @@ async function ensureConfigExists() {
     prompt: DEFAULT_PROMPT,
   };
 
-  await Bun.write(configPath, JSON.stringify(defaultConfig, null, 2) + "\n");
+  await writeFile(configPath, JSON.stringify(defaultConfig, null, 2) + "\n");
   console.log(`Created default config at ${configPath}`);
 }
 
@@ -52,11 +63,10 @@ export async function loadConfig({
   promptOverride?: string;
 } = {}) {
   const configPath = getConfigPath();
-  const file = Bun.file(configPath);
   let fileConfig: z.infer<typeof fileConfigSchema> = {};
 
-  if (await file.exists()) {
-    const raw = await file.json();
+  if (await fileExists(configPath)) {
+    const raw = JSON.parse(await readFile(configPath, "utf-8"));
     const parsed = fileConfigSchema.safeParse(raw);
     if (parsed.success) {
       fileConfig = parsed.data;
@@ -89,15 +99,19 @@ export async function loadConfig({
 
 export async function openConfig() {
   const configPath = getConfigPath();
-  const file = Bun.file(configPath);
 
-  if (!(await file.exists())) {
+  if (!(await fileExists(configPath))) {
     await ensureConfigExists();
   }
 
   const editor = process.env.EDITOR || process.env.VISUAL || "vi";
-  const proc = Bun.spawn([editor, configPath], {
-    stdio: ["inherit", "inherit", "inherit"],
+  const proc = spawn(editor, [configPath], { stdio: "inherit" });
+
+  await new Promise<void>((resolve, reject) => {
+    proc.on("close", (code) => {
+      if (code === 0 || code === null) resolve();
+      else reject(new Error(`Editor exited with code ${code}`));
+    });
+    proc.on("error", reject);
   });
-  await proc.exited;
 }

@@ -1,8 +1,8 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
-import { loadConfig, openConfig } from "./config";
-import { getStagedDiff, commitWithMessage } from "./git";
-import { generateCommitMessage } from "./ai";
+import { loadConfig, openConfig } from "./config.js";
+import { getStagedDiff, commitWithMessage } from "./git.js";
+import { generateCommitMessage } from "./ai.js";
 
 function printHelp() {
   console.log(`Usage: git hermes [command] [options]

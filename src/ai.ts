@@ -3,8 +3,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGroq } from "@ai-sdk/groq";
-import { DEFAULT_PROMPT } from "./prompt";
-import type { Config } from "./config";
+import { DEFAULT_PROMPT } from "./prompt.js";
+import type { Config } from "./config.js";
 
 const providerFactory = {
   openai: createOpenAI,
