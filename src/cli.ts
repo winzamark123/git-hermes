@@ -1,26 +1,41 @@
 #!/usr/bin/env bun
 
-import { loadConfig, runConfigure } from "./config";
-import { getStagedDiff } from "./git";
+import { loadConfig, openConfig } from "./config";
+import { getStagedDiff, commitWithMessage } from "./git";
 import { generateCommitMessage } from "./ai";
-import { commitWithMessage } from "./git";
 
 function printHelp() {
   console.error(`Usage: git hermes [command] [options]
 
 Commands:
-  configure    Interactive setup for model, API key, and prompt
+  config                    Open config file in $EDITOR
 
 Options:
-  --commit     Generate message and commit automatically
-  --model      Override model (e.g. openai:gpt-4o)
-  --help       Show this help message
+  -p, --provider <name>     AI provider (openai, anthropic, google, groq)
+  -m, --model <name>        Model name (e.g. gpt-4o, claude-sonnet-4-20250514)
+  -k, --api-key <key>       API key
+      --prompt <text>        Custom system prompt
+      --dry-run              Print commit message without committing
+  -h, --help                Show this help message
 
 Examples:
-  git hermes                              Print commit message to stdout
-  git hermes --commit                     Generate and commit
-  git hermes --model anthropic:claude-sonnet-4-20250514  Override model
-  git hermes configure                    Interactive setup`);
+  git hermes                                Generate and commit
+  git hermes -p anthropic -m claude-sonnet-4-20250514   Override provider and model
+  git hermes --dry-run                      Preview message
+  git hermes config                         Edit configuration`);
+}
+
+function getFlagValue({ args, flags }: { args: string[]; flags: string[] }) {
+  for (const flag of flags) {
+    const index = args.indexOf(flag);
+    if (index !== -1) {
+      const value = args[index + 1];
+      if (!value || value.startsWith("-")) {
+        throw new Error(`${flag} requires a value`);
+      }
+      return value;
+    }
+  }
 }
 
 async function main() {
@@ -31,33 +46,28 @@ async function main() {
     process.exit(0);
   }
 
-  if (args[0] === "configure") {
-    await runConfigure();
+  if (args[0] === "config") {
+    await openConfig();
     process.exit(0);
   }
 
-  const shouldCommit = args.includes("--commit");
+  const dryRun = args.includes("--dry-run");
+  const providerOverride = getFlagValue({ args, flags: ["-p", "--provider"] });
+  const modelOverride = getFlagValue({ args, flags: ["-m", "--model"] });
+  const apiKeyOverride = getFlagValue({ args, flags: ["-k", "--api-key"] });
+  const promptOverride = getFlagValue({ args, flags: ["--prompt"] });
 
-  let modelOverride: string | undefined;
-  const modelIndex = args.indexOf("--model");
-  if (modelIndex !== -1) {
-    modelOverride = args[modelIndex + 1];
-    if (!modelOverride) {
-      throw new Error("--model requires a value (e.g. --model openai:gpt-4o)");
-    }
-  }
-
-  const config = await loadConfig({ modelOverride });
+  const config = await loadConfig({ providerOverride, modelOverride, apiKeyOverride, promptOverride });
   const diff = await getStagedDiff();
 
   console.error("Generating commit message...");
   const message = await generateCommitMessage({ diff, config });
 
-  if (shouldCommit) {
+  if (dryRun) {
+    process.stdout.write(message + "\n");
+  } else {
     const result = await commitWithMessage({ message });
     console.error(result);
-  } else {
-    process.stdout.write(message + "\n");
   }
 }
 

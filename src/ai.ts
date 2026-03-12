@@ -14,16 +14,13 @@ const providerFactory = {
 } as const;
 
 export async function generateCommitMessage({ diff, config }: { diff: string; config: Config }) {
-  const [providerId, ...rest] = config.model.split(":");
-  const modelId = rest.join(":");
-
-  const factory = providerFactory[providerId as keyof typeof providerFactory];
+  const factory = providerFactory[config.provider as keyof typeof providerFactory];
   if (!factory) {
-    throw new Error(`Unknown provider '${providerId}'. Supported: ${Object.keys(providerFactory).join(", ")}`);
+    throw new Error(`Unknown provider '${config.provider}'. Supported: ${Object.keys(providerFactory).join(", ")}`);
   }
 
   const provider = factory({ apiKey: config.apiKey });
-  const model = provider(modelId);
+  const model = provider(config.model);
 
   const { text } = await generateText({
     model,

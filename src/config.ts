@@ -1,16 +1,22 @@
 import { z } from "zod";
 import { join } from "path";
 import { homedir } from "os";
+import { DEFAULT_PROMPT } from "./prompt";
 
 const SUPPORTED_PROVIDERS = ["openai", "anthropic", "google", "groq"] as const;
+const DEFAULT_PROVIDER = "openai";
+const DEFAULT_MODEL = "gpt-4o";
 
 const configSchema = z.object({
-  model: z.string().regex(/^.+:.+$/, "Expected 'providerId:modelId' (e.g. 'openai:gpt-4o')"),
+  provider: z.enum(SUPPORTED_PROVIDERS),
+  model: z.string().min(1),
   apiKey: z.string().min(1),
   prompt: z.string().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
+
+const fileConfigSchema = configSchema.partial();
 
 function getConfigPath() {
   const xdgConfig = process.env.XDG_CONFIG_HOME;
@@ -18,91 +24,80 @@ function getConfigPath() {
   return join(base, "hermes", "config.json");
 }
 
-export async function loadConfig({ modelOverride }: { modelOverride?: string } = {}) {
-  let fileConfig: Partial<Config> = {};
+async function ensureConfigExists() {
+  const configPath = getConfigPath();
+  const dir = configPath.slice(0, configPath.lastIndexOf("/"));
+  await Bun.spawn(["mkdir", "-p", dir]).exited;
 
+  const defaultConfig = {
+    provider: DEFAULT_PROVIDER,
+    model: DEFAULT_MODEL,
+    apiKey: "your-api-key-here",
+    prompt: DEFAULT_PROMPT,
+  };
+
+  await Bun.write(configPath, JSON.stringify(defaultConfig, null, 2) + "\n");
+  console.error(`Created default config at ${configPath}`);
+}
+
+export async function loadConfig({
+  providerOverride,
+  modelOverride,
+  apiKeyOverride,
+  promptOverride,
+}: {
+  providerOverride?: string;
+  modelOverride?: string;
+  apiKeyOverride?: string;
+  promptOverride?: string;
+} = {}) {
   const configPath = getConfigPath();
   const file = Bun.file(configPath);
+  let fileConfig: z.infer<typeof fileConfigSchema> = {};
 
   if (await file.exists()) {
     const raw = await file.json();
-    const parsed = configSchema.partial().safeParse(raw);
+    const parsed = fileConfigSchema.safeParse(raw);
     if (parsed.success) {
       fileConfig = parsed.data;
     }
+  } else {
+    await ensureConfigExists();
   }
 
-  // priority: CLI args > env vars > config file
-  const model = modelOverride || process.env.HERMES_MODEL || fileConfig.model;
-  const apiKey = process.env.HERMES_API_KEY || fileConfig.apiKey;
-  const prompt = fileConfig.prompt;
+  // priority: CLI flags > env vars > config file > defaults
+  const provider = providerOverride || process.env.HERMES_PROVIDER || fileConfig.provider || DEFAULT_PROVIDER;
+  const model = modelOverride || process.env.HERMES_MODEL || fileConfig.model || DEFAULT_MODEL;
+  const apiKey = apiKeyOverride || process.env.HERMES_API_KEY || fileConfig.apiKey;
+  const prompt = promptOverride || fileConfig.prompt;
 
-  if (!model || !apiKey) {
+  if (!apiKey) {
     throw new Error(
-      "Missing configuration. Run `git hermes configure` or set HERMES_MODEL and HERMES_API_KEY environment variables."
+      `No API key found. Set one of:\n` +
+        `  export HERMES_API_KEY=your-key\n` +
+        `  git hermes -k your-key\n` +
+        `  Edit ${configPath} and add "apiKey": "your-key"`,
     );
   }
 
-  const config = configSchema.parse({ model, apiKey, prompt });
-
-  // validate provider
-  const providerId = model.split(":")[0];
-  if (!SUPPORTED_PROVIDERS.includes(providerId as (typeof SUPPORTED_PROVIDERS)[number])) {
-    throw new Error(`Unknown provider '${providerId}'. Supported: ${SUPPORTED_PROVIDERS.join(", ")}`);
+  if (!SUPPORTED_PROVIDERS.includes(provider as (typeof SUPPORTED_PROVIDERS)[number])) {
+    throw new Error(`Unknown provider '${provider}'. Supported: ${SUPPORTED_PROVIDERS.join(", ")}`);
   }
 
-  return config;
+  return configSchema.parse({ provider, model, apiKey, prompt });
 }
 
-export async function saveConfig({ config }: { config: Config }) {
+export async function openConfig() {
   const configPath = getConfigPath();
-  const dir = configPath.slice(0, configPath.lastIndexOf("/"));
+  const file = Bun.file(configPath);
 
-  await Bun.spawn(["mkdir", "-p", dir]).exited;
-  await Bun.write(configPath, JSON.stringify(config, null, 2) + "\n");
-}
-
-async function prompt({ message }: { message: string }) {
-  process.stderr.write(message);
-
-  for await (const line of console) {
-    return line.trim();
+  if (!(await file.exists())) {
+    await ensureConfigExists();
   }
 
-  return "";
-}
-
-export async function runConfigure() {
-  console.error("git-hermes configuration\n");
-
-  const model = await prompt({
-    message: "Model (e.g. openai:gpt-4o, anthropic:claude-sonnet-4-20250514): ",
+  const editor = process.env.EDITOR || process.env.VISUAL || "vi";
+  const proc = Bun.spawn([editor, configPath], {
+    stdio: ["inherit", "inherit", "inherit"],
   });
-
-  if (!model || !model.includes(":")) {
-    throw new Error("Expected 'providerId:modelId' (e.g. 'openai:gpt-4o')");
-  }
-
-  const providerId = model.split(":")[0];
-  if (!SUPPORTED_PROVIDERS.includes(providerId as (typeof SUPPORTED_PROVIDERS)[number])) {
-    throw new Error(`Unknown provider '${providerId}'. Supported: ${SUPPORTED_PROVIDERS.join(", ")}`);
-  }
-
-  const apiKey = await prompt({ message: "API key: " });
-  if (!apiKey) {
-    throw new Error("API key is required.");
-  }
-
-  const customPrompt = await prompt({
-    message: "Custom prompt (press Enter to use default): ",
-  });
-
-  const config: Config = {
-    model,
-    apiKey,
-    ...(customPrompt ? { prompt: customPrompt } : {}),
-  };
-
-  await saveConfig({ config });
-  console.error("\nConfiguration saved to " + getConfigPath());
+  await proc.exited;
 }
