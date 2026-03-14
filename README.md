@@ -27,15 +27,16 @@ AI-powered git commit messages from your staged diffs.
 brew install winzamark123/tap/git-hermes
 ```
 
-### npm
+### npm / Bun
 
 ```bash
+# npm
 npm i -g git-hermes
-```
 
-### One-shot with npx
+# bun
+bun i -g git-hermes
 
-```bash
+# one-shot with npx
 npx git-hermes
 ```
 
