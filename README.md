@@ -8,7 +8,7 @@ AI-powered git commit messages from your staged diffs. Easy, fast, and configura
 
 ## Demo
 
-<video src="https://github.com/winzamark123/git-hermes/raw/main/public/git-hermes.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/8acfa6c9-4175-4dc0-ba7f-6a7410d47aa6" controls width="100%"></video>
 
 ## Table of Contents
 
