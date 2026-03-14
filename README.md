@@ -1,6 +1,6 @@
 # git-hermes
 
-AI-powered git commit messages from your staged diffs.
+AI-powered git commit messages from your staged diffs. Easy, fast, and configurable.
 
 [![npm version](https://img.shields.io/npm/v/git-hermes?style=flat-square)](https://www.npmjs.com/package/git-hermes)
 [![license](https://img.shields.io/npm/l/git-hermes?style=flat-square)](./LICENSE)
@@ -8,7 +8,7 @@ AI-powered git commit messages from your staged diffs.
 
 ## Demo
 
-<!-- TODO: add demo video/gif -->
+<video src="https://github.com/winzamark123/git-hermes/raw/main/public/git-hermes.mp4" controls width="100%"></video>
 
 ## Table of Contents
 
@@ -56,6 +56,7 @@ Or pass it inline:
 git hermes -p anthropic -m claude-sonnet-4-20250514 -k sk-ant-your-key
 ```
 
+
 ## Usage
 
 ```bash
@@ -80,6 +81,9 @@ git hermes config
 # show help
 git hermes --help
 ```
+
+> [!IMPORTANT]
+> By default, git-hermes generates commit messages following the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. You can override this with a custom prompt via `--prompt` or your config file.
 
 ## Configuration
 
