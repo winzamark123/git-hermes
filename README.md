@@ -40,6 +40,9 @@ bun i -g git-hermes
 npx git-hermes
 ```
 
+> [!TIP]
+> `git-hermes` installs as a git subcommand — no aliases needed. Any binary named `git-<name>` is automatically available as `git <name>`.
+
 On first run, a default config is created at `~/.config/hermes/config.json` with OpenAI (`gpt-4o`) as the default provider. Set your API key by opening the config in your editor:
 
 ```bash
@@ -77,9 +80,6 @@ git hermes config
 # show help
 git hermes --help
 ```
-
-> [!TIP]
-> `git-hermes` installs as a git subcommand — no aliases needed. Any binary named `git-<name>` is automatically available as `git <name>`.
 
 ## Configuration
 
