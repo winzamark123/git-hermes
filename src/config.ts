@@ -6,14 +6,17 @@ import { spawn } from "node:child_process";
 import { DEFAULT_PROMPT } from "./prompt.js";
 
 const SUPPORTED_PROVIDERS = ["openai", "anthropic", "google", "groq"] as const;
+const SUPPORTED_COLORS = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "gray"] as const;
 const DEFAULT_PROVIDER = "openai";
 const DEFAULT_MODEL = "gpt-4o";
+const DEFAULT_ANIMATION_COLOR = "cyan";
 
 const configSchema = z.object({
   provider: z.enum(SUPPORTED_PROVIDERS),
   model: z.string().min(1),
   apiKey: z.string().min(1),
   prompt: z.string().optional(),
+  animationColor: z.enum(SUPPORTED_COLORS).optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -80,6 +83,7 @@ export async function loadConfig({
   const model = modelOverride || process.env.HERMES_MODEL || fileConfig.model || DEFAULT_MODEL;
   const apiKey = apiKeyOverride || process.env.HERMES_API_KEY || fileConfig.apiKey;
   const prompt = promptOverride || fileConfig.prompt;
+  const animationColor = fileConfig.animationColor || DEFAULT_ANIMATION_COLOR;
 
   if (!apiKey) {
     throw new Error(
@@ -94,7 +98,7 @@ export async function loadConfig({
     throw new Error(`Unknown provider '${provider}'. Supported: ${SUPPORTED_PROVIDERS.join(", ")}`);
   }
 
-  return configSchema.parse({ provider, model, apiKey, prompt });
+  return configSchema.parse({ provider, model, apiKey, prompt, animationColor });
 }
 
 export async function openConfig() {

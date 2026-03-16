@@ -92,7 +92,8 @@ Config file: `~/.config/hermes/config.json`
   "provider": "openai",
   "model": "gpt-4o",
   "apiKey": "sk-...",
-  "prompt": "optional custom system prompt"
+  "prompt": "optional custom system prompt",
+  "animationColor": "cyan"
 }
 ```
 
@@ -108,6 +109,18 @@ Values are resolved in this order (highest wins):
 | Default | — | `openai` | `gpt-4o` | — |
 
 For persistent settings, edit your config with `git hermes config`. CLI flags and environment variables are temporary and do not modify the config file.
+
+### Animation Color
+
+Customize the spinner and karaoke text color during commit message generation:
+
+```json
+{
+  "animationColor": "magenta"
+}
+```
+
+Supported colors: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan` (default), `white`, `gray`.
 
 ### Custom Prompts
 

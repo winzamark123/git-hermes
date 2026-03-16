@@ -61,7 +61,7 @@ async function main() {
   const config = await loadConfig({ providerOverride, modelOverride, apiKeyOverride, promptOverride });
   const diff = await getStagedDiff();
 
-  const animation = createLoadingAnimation({ text: "Generating commit message..." });
+  const animation = createLoadingAnimation({ text: "Generating commit message...", color: config.animationColor });
   const message = await generateCommitMessage({ diff, config }).catch((error) => {
     animation.stop();
     throw error;
