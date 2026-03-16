@@ -3,6 +3,7 @@
 import { loadConfig, openConfig } from "./config.js";
 import { getStagedDiff, commitWithMessage } from "./git.js";
 import { generateCommitMessage } from "./ai.js";
+import { createLoadingAnimation } from "./animation.js";
 
 function printHelp() {
   console.log(`Usage: git hermes [command] [options]
@@ -60,8 +61,12 @@ async function main() {
   const config = await loadConfig({ providerOverride, modelOverride, apiKeyOverride, promptOverride });
   const diff = await getStagedDiff();
 
-  console.log("Generating commit message...");
-  const message = await generateCommitMessage({ diff, config });
+  const animation = createLoadingAnimation({ text: "Generating commit message..." });
+  const message = await generateCommitMessage({ diff, config }).catch((error) => {
+    animation.stop();
+    throw error;
+  });
+  animation.success("Commit message generated");
 
   if (dryRun) {
     process.stdout.write(message + "\n");
