@@ -6,7 +6,7 @@ AI-powered git commit messages from your staged diffs. Easy, fast, and configura
 [![license](https://img.shields.io/npm/l/git-hermes?style=flat-square)](./LICENSE)
 [![downloads](https://img.shields.io/npm/dm/git-hermes?style=flat-square)](https://www.npmjs.com/package/git-hermes)
 
-<video src="https://github.com/user-attachments/assets/e5bb58d2-da46-4e4a-82c4-371c1a74f260" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/f0df575d-de29-4348-ace8-da488d474b34" controls width="100%"></video>
 
 ## Table of Contents
 
