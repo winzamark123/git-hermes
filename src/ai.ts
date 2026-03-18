@@ -13,7 +13,7 @@ const providerFactory = {
   groq: createGroq,
 } as const;
 
-export async function generateCommitMessage({ diff, config }: { diff: string; config: Config }) {
+export async function generateCommitMessage({ diff, config, intention }: { diff: string; config: Config; intention?: string }) {
   const factory = providerFactory[config.provider as keyof typeof providerFactory];
   if (!factory) {
     throw new Error(`Unknown provider '${config.provider}'. Supported: ${Object.keys(providerFactory).join(", ")}`);
@@ -22,9 +22,14 @@ export async function generateCommitMessage({ diff, config }: { diff: string; co
   const provider = factory({ apiKey: config.apiKey });
   const model = provider(config.model);
 
+  const basePrompt = config.prompt || DEFAULT_PROMPT;
+  const intentionAddendum = intention
+    ? `\n\nThe user has provided their intent for this commit: "${intention}"\nUse this as the short description in the subject line. Determine the appropriate type and scope from the diff, but use the user's intent verbatim as the description portion (after "type(scope): ").`
+    : "";
+
   const { text } = await generateText({
     model,
-    system: config.prompt || DEFAULT_PROMPT,
+    system: basePrompt + intentionAddendum,
     prompt: diff,
   });
 

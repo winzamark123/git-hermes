@@ -61,6 +61,12 @@ git hermes -p anthropic -m claude-sonnet-4-20250514 -k sk-ant-your-key
 # generate a commit message and commit
 git hermes
 
+# guide the commit with your intention
+git hermes "add user authentication"
+
+# preview a guided message without committing
+git hermes "fix login redirect bug" --dry-run
+
 # preview the message without committing
 git hermes --dry-run
 
@@ -79,6 +85,29 @@ git hermes config
 # show help
 git hermes --help
 ```
+
+### Intentional Commits
+
+Pass a quoted string to guide the subject line of the generated commit message:
+> [!TIP]
+> You should always commit intentionally! Know what code you are pushing.
+
+```bash
+git hermes "add user authentication"
+# → feat(auth): add user authentication
+#
+# - add login endpoint with JWT token generation
+# - create user model with password hashing
+# - add auth middleware for protected routes
+
+git hermes "fix login redirect bug"
+# → fix(auth): fix login redirect bug
+#
+# - correct redirect URL after successful login
+# - handle edge case for expired sessions
+```
+
+The AI still determines the appropriate `type` and `scope` from your diff — your intention replaces only the short description. Without an intention, hermes generates the entire message automatically.
 
 > [!IMPORTANT]
 > By default, git-hermes generates commit messages following the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. You can override this with a custom prompt via `--prompt` or your config file.

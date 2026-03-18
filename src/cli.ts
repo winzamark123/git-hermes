@@ -6,10 +6,13 @@ import { generateCommitMessage } from "./ai.js";
 import { createLoadingAnimation } from "./animation.js";
 
 function printHelp() {
-  console.log(`Usage: git hermes [command] [options]
+  console.log(`Usage: git hermes [intention] [command] [options]
 
 Commands:
   config                    Open config file in $EDITOR
+
+Arguments:
+  intention                 Optional commit description to guide the AI
 
 Options:
   -p, --provider <name>     AI provider (openai, anthropic, google, groq)
@@ -21,6 +24,8 @@ Options:
 
 Examples:
   git hermes                                Generate and commit
+  git hermes "add user auth"                Guide the commit message
+  git hermes "fix login bug" --dry-run      Preview guided message
   git hermes -p anthropic -m claude-sonnet-4-20250514   Override provider and model
   git hermes --dry-run                      Preview message
   git hermes config                         Edit configuration`);
@@ -58,11 +63,23 @@ async function main() {
   const apiKeyOverride = getFlagValue({ args, flags: ["-k", "--api-key"] });
   const promptOverride = getFlagValue({ args, flags: ["--prompt"] });
 
+  // extract positional arg (intention) by skipping flags and their values
+  const flagsWithValues = new Set(["-p", "--provider", "-m", "--model", "-k", "--api-key", "--prompt"]);
+  let intention: string | undefined;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].startsWith("-")) {
+      if (flagsWithValues.has(args[i])) i++;
+      continue;
+    }
+    intention = args[i];
+    break;
+  }
+
   const config = await loadConfig({ providerOverride, modelOverride, apiKeyOverride, promptOverride });
   const diff = await getStagedDiff();
 
   const animation = createLoadingAnimation({ text: "Generating commit message...", color: config.animationColor });
-  const message = await generateCommitMessage({ diff, config }).catch((error) => {
+  const message = await generateCommitMessage({ diff, config, intention }).catch((error) => {
     animation.stop();
     throw error;
   });
